@@ -24,13 +24,16 @@ class Textish a where
     toText :: a -> Text
 
 instance Textish Text where
-    toText = id
+    {-# INLINE toText #-}
+    toText x = x
 
 instance Textish [Char] where
-    toText = pack
+    {-# INLINE toText #-}
+    toText x = pack x
 
 instance Show a => Textish a where 
-    toText = pack . show
+    {-# INLINE toText #-}
+    toText x = pack (show x)
 
 -- | A simple 'QuasiQuoter' to interpolate 'Text' into other pieces of 'Text'. 
 -- Expressions can be embedded using $(...) or $..., $... will only work for one-word expressions (best suited for just
