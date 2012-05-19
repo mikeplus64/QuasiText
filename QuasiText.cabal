@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                QuasiText
-version:             0.1.1.6
+version:             0.1.1.8
 synopsis:            Text interpolation for well, Text
 -- description:         
 homepage:            http://quasimal.com
