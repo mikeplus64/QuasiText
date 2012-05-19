@@ -6,7 +6,7 @@ import Language.Haskell.TH
 import Language.Haskell.Meta (parseExp)
 
 import Data.Attoparsec.Text
-import Data.Text as T (Text, pack, unpack, append, empty, head, strip)
+import Data.Text as T (Text, pack, unpack, append, empty, head, strip, lines, unlines)
 
 instance Lift Text where
     lift t = litE (stringL (unpack t))
@@ -61,7 +61,7 @@ embed = QuasiQuoter
 
 -- | Create 'Chunk's without any TH.
 getChunks :: Text -> [Chunk]
-getChunks i = let Right m = parseOnly parser i in map (alter strip) m
+getChunks i = let Right m = parseOnly parser (unlines (map strip (lines i))) in m
   where
     parser = go []
 
