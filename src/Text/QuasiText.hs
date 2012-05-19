@@ -1,5 +1,6 @@
 {-# LANGUAGE ExistentialQuantification, TemplateHaskell, QuasiQuotes, OverloadedStrings, FlexibleInstances, UndecidableInstances, IncoherentInstances #-}
--- | A simple 'QuasiQuoter' for 'Text' strings. Note that to use 'embed' you need to use the OverloadedStrings extension.
+-- |
+-- A simple 'QuasiQuoter' for 'Text' strings. Note that to use 'embed' you need to use the OverloadedStrings extension.
 
 module Text.QuasiText (embed, Chunk (..), getChunks) where
 import Language.Haskell.TH.Quote
