@@ -17,11 +17,6 @@ data Chunk =
     | V Text
   deriving (Show, Eq)
 
-alter :: (Text -> Text) -> Chunk -> Chunk
-alter f (T t) = T $ f t
-alter f (E t) = E $ f t
-alter f (V t) = V $ f t
-
 class Textish a where
     toText :: a -> Text
 
@@ -61,7 +56,7 @@ embed = QuasiQuoter
 
 -- | Create 'Chunk's without any TH.
 getChunks :: Text -> [Chunk]
-getChunks i = let Right m = parseOnly parser (unlines (map strip (lines i))) in m
+getChunks i = let Right m = parseOnly parser (T.unlines (map strip (T.lines i))) in m
   where
     parser = go []
 
