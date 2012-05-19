@@ -2,15 +2,14 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                QuasiText
-version:             0.1.1.9
-synopsis:            Text interpolation for well, Text
--- description:         
-homepage:            http://quasimal.com
+version:             0.1.2.0
+synopsis:            A QuasiQuoter for Text.
+description:         A QuasiQuoter for interpolating values into Text strings.
+homepage:            https://github.com/mikeplus64/QuasiText
 license:             BSD3
 license-file:        LICENSE
 author:              Mike Ledger
 maintainer:          eleventynine@gmail.com
--- copyright:           
 category:            Text
 build-type:          Simple
 cabal-version:       >=1.8
