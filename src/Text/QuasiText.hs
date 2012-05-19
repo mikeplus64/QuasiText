@@ -6,7 +6,7 @@ import Language.Haskell.TH
 import Language.Haskell.Meta (parseExp)
 
 import Data.Attoparsec.Text
-import Data.Text as T (Text, pack, unpack, append, empty, head)
+import Data.Text as T (Text, pack, unpack, append, empty, head, strip)
 
 instance Lift Text where
     lift t = litE (stringL (unpack t))
@@ -16,6 +16,11 @@ data Chunk =
     | E Text
     | V Text
   deriving (Show, Eq)
+
+alter :: (Text -> Text) -> Chunk -> Chunk
+alter f (T t) = T $ f t
+alter f (E t) = E $ f t
+alter f (V t) = V $ f t
 
 class Textish a where
     toText :: a -> Text
@@ -56,9 +61,10 @@ embed = QuasiQuoter
 
 -- | Create 'Chunk's without any TH.
 getChunks :: Text -> [Chunk]
-getChunks i = let Right m = parseOnly parser i in m
+getChunks i = let Right m = parseOnly parser i in map (alter strip) m
   where
     parser = go []
+
     go s = do
         txt <- takeTill (== '$')
         evt <- choice [expression, var, fmap T takeText]
@@ -82,3 +88,4 @@ getChunks i = let Right m = parseOnly parser i in m
         expr <- takeTill (== ')')
         char ')'
         return (E expr)
+
