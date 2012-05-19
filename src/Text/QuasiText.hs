@@ -74,7 +74,7 @@ getChunks i = let Right m = parseOnly parser i in m
 
     var = do
         char '$'
-        val <- takeTill (== ' ')
+        val <- takeTill (notInClass "a-zA-Z0-9_")
         return (V val)
 
     expression = do
