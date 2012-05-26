@@ -9,7 +9,7 @@ import Language.Haskell.TH
 import Language.Haskell.Meta (parseExp)
 
 import Data.Attoparsec.Text
-import Data.Text as T (Text, pack, unpack, append, empty, head, strip)
+import Data.Text as T (Text, pack, unpack, append, empty, head, strip, concat)
 
 instance Lift Text where
     lift t = litE (stringL (unpack t))
@@ -53,7 +53,7 @@ embed = QuasiQuoter
                         V t | T.head t `elem` ['a'..'z'] -> appE [| toText |] (global (mkName (unpack t)))
                             | otherwise -> let Right e = parseExp (unpack t) in appE [| toText |] (return e)
 
-        in foldr (\l r -> appE (appE [| append |] l) r) [| empty |] chunks
+        in appE [| T.concat |] (listE chunks)
 
     , quotePat  = error "cannot use this as a pattern"
     , quoteDec  = error "cannot use this as a declaration"
