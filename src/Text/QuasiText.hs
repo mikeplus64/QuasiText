@@ -90,7 +90,7 @@ getChunks i = case parseOnly parser (T.strip i) of
             _ -> return [expr, T.singleton paren]
 
     parser :: Parser [Chunk]
-    parser = fmap concat $ flip manyTill (endOfInput <|> endOfLine) $ do
+    parser = fmap concat $ flip manyTill endOfInput $ do
         text <- takeTill (== '$')
         end  <- atEnd
         if end
