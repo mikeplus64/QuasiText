@@ -17,5 +17,5 @@ cabal-version:       >=1.8
 library
   exposed-modules:     Text.QuasiText
   -- other-modules:       
-  build-depends:       base ==4.5.*, template-haskell ==2.7.*, haskell-src-meta == 0.5.*, attoparsec ==0.10.*, text ==0.11.*
+  build-depends:       base, template-haskell, haskell-src-meta, attoparsec, text
   hs-source-dirs:      src
