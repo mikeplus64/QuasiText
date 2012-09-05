@@ -9,15 +9,20 @@ import Language.Haskell.TH
 import Language.Haskell.Meta (parseExp)
 
 import Data.Attoparsec.Text
-import Data.Text as T (Text, pack, unpack, append, empty, head, strip, concat)
+import qualified Data.Text as T 
+import Data.Text (Text)
+import Data.Char
 
+import Data.Monoid
+import Control.Applicative
+                        
 instance Lift Text where
-    lift t = litE (stringL (unpack t))
+    lift = litE . stringL . T.unpack
 
-data Chunk = 
-      T Text
-    | E Text
-    | V Text
+data Chunk 
+    = T Text -- ^ text
+    | E Text -- ^ expression
+    | V Text -- ^ value
   deriving (Show, Eq)
 
 class Textish a where
@@ -29,64 +34,79 @@ instance Textish Text where
 
 instance Textish [Char] where
     {-# INLINE toText #-}
-    toText x = pack x
+    toText x = T.pack x
 
 instance Show a => Textish a where 
     {-# INLINE toText #-}
-    toText x = pack (show x)
+    toText x = T.pack (show x)
 
 -- | A simple 'QuasiQuoter' to interpolate 'Text' into other pieces of 'Text'. 
--- Expressions can be embedded using $(...) or $..., $... will only work for one-word expressions (best suited for just
--- variable substitution), but $(...) will work for anything..
+-- Expressions can be embedded using $(expr), and values can be interpolated 
+-- with $name. Inside $( )s, if you have a string of ambiguous type, it will 
+-- default to the Show instance for toText, which will escape unicode 
+-- characters in the string, and add quotes around them.
+
 embed :: QuasiQuoter
 embed = QuasiQuoter
     { quoteExp = \s -> 
-        let chunks = flip map (getChunks (pack s)) $ \c ->
+        let chunks = flip map (getChunks (T.pack s)) $ \c ->
                     case c of
-                        -- literal text
                         T t -> [| t |]
-
-                        -- haskell expression
-                        E t -> let Right e = parseExp (unpack t) in appE [| toText |] (return e) 
-
-                        -- one-word expression
-                        V t | T.head t `elem` ['a'..'z'] -> appE [| toText |] (global (mkName (unpack t)))
-                            | otherwise -> let Right e = parseExp (unpack t) in appE [| toText |] (return e)
+                        E t -> let Right e = parseExp (T.unpack t) in appE [| toText |] (return e) 
+                        V t -> appE [| toText |] (global (mkName (T.unpack t)))
 
         in appE [| T.concat |] (listE chunks)
-
-    , quotePat  = error "cannot use this as a pattern"
-    , quoteDec  = error "cannot use this as a declaration"
-    , quoteType = error "cannot use this as a type"
     }
 
 -- | Create 'Chunk's without any TH.
 getChunks :: Text -> [Chunk]
-getChunks i = let Right m = parseOnly parser (strip i) in m
+getChunks i = case parseOnly parser (T.strip i) of
+        Right m -> m
+        _       -> error "Unclosed parenthesis."
+
   where
-    parser = go []
+    parenthesis '(' = True
+    parenthesis ')' = True
+    parenthesis _   = False
 
-    go s = do
-        txt <- takeTill (== '$')
-        evt <- choice [expression, var, fmap T takeText]
-        end <- atEnd
+    parseExpression :: Int -> Parser [Text]
+    parseExpression level = do
+        expr  <- takeTill parenthesis
+        paren <- anyChar
+        case paren of
+            ')' | level <= 0 -> return [expr]
+                | otherwise  -> do
+                    next <- parseExpression (level - 1)
+                    return ([expr, ")"] ++ next)
+
+            '(' -> do
+                next <- parseExpression (level + 1)
+                return ([expr, "("] ++ next)
+
+            _ -> return [expr, T.singleton paren]
+
+    parser :: Parser [Chunk]
+    parser = fmap concat $ flip manyTill (endOfInput <|> endOfLine) $ do
+        text <- takeTill (== '$')
+        end  <- atEnd
         if end
-            then return $ filter (not . blank) $ reverse (evt:T txt:s)
-            else go (evt:T txt:s)
+            then return [T text]
+            else do
+                char '$'
+                next <- anyChar
+                case next of
+                    -- opening an experssion
+                    '(' -> do
+                        expr <- T.concat <$> parseExpression 0
+                        return [T text, E expr]
 
-    blank (T "") = True
-    blank (E "") = True
-    blank (V "") = True
-    blank _      = False
+                    -- escaped '$' 
+                    '$' -> return [T (text <> "$")]
 
-    var = do
-        char '$'
-        val <- takeTill (notInClass "a-zA-Z0-9_")
-        return (V val)
+                    -- value
+                    _ -> do
+                        name <- takeTill (not . isAlphaNum)
+                        return [T text, V (T.cons next name)]
+                        
 
-    expression = do
-        string "$("
-        expr <- takeTill (== ')')
-        char ')'
-        return (E expr)
 
