@@ -52,7 +52,11 @@ embed = QuasiQuoter
         let chunks = flip map (getChunks (T.pack s)) $ \c ->
                     case c of
                         T t -> [| t |]
-                        E t -> let Right e = parseExp (T.unpack t) in appE [| toText |] (return e) 
+
+                        E t -> case parseExp (T.unpack t) of
+                            Left  e -> error e
+                            Right e -> appE [| toText |] (return e)
+
                         V t -> appE [| toText |] (global (mkName (T.unpack t)))
 
         in appE [| T.concat |] (listE chunks)
