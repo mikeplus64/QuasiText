@@ -2,7 +2,7 @@
 -- |
 -- A simple 'QuasiQuoter' for 'Text' strings. Note that to use 'embed' you need to use the OverloadedStrings extension.
 
-module Text.QuasiText (embed, Chunk (..), getChunks) where
+module Text.QuasiText (embed, embedM, Chunk (..), getChunks) where
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
 import Language.Haskell.TH
@@ -60,6 +60,22 @@ embed = QuasiQuoter
                         V t -> appE [| toText |] (global (mkName (T.unpack t)))
 
         in appE [| T.concat |] (listE chunks)
+    }
+
+embedM :: QuasiQuoter
+embedM = QuasiQuoter
+    { quoteExp = \s -> 
+        let chunks = flip map (getChunks (T.pack s)) $ \c ->
+                    case c of
+                        T t -> [| return t |]
+
+                        E t -> case parseExp (T.unpack t) of
+                            Left  e -> error e
+                            Right e -> appE [| (toText <$>) |] (return e)
+
+                        V t -> appE [| (toText <$>) |] (global (mkName (T.unpack t)))
+
+        in appE [| (\l -> T.concat <$> (sequence l)) |] (listE chunks)
     }
 
 -- | Create 'Chunk's without any TH.
