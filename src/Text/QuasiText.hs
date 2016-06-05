@@ -3,6 +3,7 @@
 -- A simple 'QuasiQuoter' for 'Text' strings. Note that to use 'embed' you need to use the OverloadedStrings extension.
 
 module Text.QuasiText (embed, Chunk (..), getChunks) where
+import Instances.TH.Lift () -- for the `instance Lift Text`
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
 import Language.Haskell.TH
@@ -15,9 +16,6 @@ import Data.Char
 
 import Data.Monoid
 import Control.Applicative
-                        
-instance Lift Text where
-    lift = litE . stringL . T.unpack
 
 data Chunk 
     = T Text -- ^ text
@@ -57,7 +55,7 @@ embed = QuasiQuoter
                             Left  e -> error e
                             Right e -> appE [| toText |] (return e)
 
-                        V t -> appE [| toText |] (global (mkName (T.unpack t)))
+                        V t -> appE [| toText |] (varE (mkName (T.unpack t)))
 
         in appE [| T.concat |] (listE chunks)
     }
